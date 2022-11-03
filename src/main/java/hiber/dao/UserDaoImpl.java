@@ -5,25 +5,39 @@ import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import java.util.List;
 
 @Repository
 public class UserDaoImpl implements UserDao {
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManagerFactory entityManagerFactory;
 
     @Override
     public void save(User user) {
-        sessionFactory.getCurrentSession().save(user);
+        EntityManager entityManager = null;
+        EntityTransaction entityTransaction = null;
+        try {
+            entityManager = entityManagerFactory.createEntityManager();
+            entityTransaction = entityManager.getTransaction();
+            entityTransaction.begin();
+            entityManager.persist(user);
+            entityTransaction.commit();
+        }catch(Exception e){
+            entityTransaction.rollback();
+        }finally{
+        entityManager.close();
+    }
     }
 
     @Override
     public User getUser(Long id) {
-        TypedQuery<User> query = sessionFactory.getCurrentSession().createQuery("from User where id=:id");
-        query.setParameter("id", id);
-        return query.getSingleResult();
+
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        return (User) entityManager.createQuery("from User where id = :id")
+                    .setParameter("id", id)
+                    .getSingleResult();
     }
 
     @Override
